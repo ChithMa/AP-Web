@@ -10,6 +10,10 @@ const addTransactionBtn = document.getElementById('add-transaction-btn');
 const closeModalBtn = document.querySelector('.close-modal');
 const transactionForm = document.getElementById('transaction-form');
 const pageTitle = document.getElementById('page-title');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const menuBtn = document.getElementById('menu-btn');
+const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 
 // State
 let balanceChartInstance = null;
@@ -22,9 +26,37 @@ document.addEventListener('DOMContentLoaded', () => {
     initYearSelector();
     initModal();
     initReports();
+    initModal();
+    initReports();
+    initMobileSidebar();
     // Default to current year or the latest available if current is empty
     renderAll();
 });
+
+function initMobileSidebar() {
+    function openSidebar() {
+        sidebar.classList.add('active');
+        sidebarOverlay.classList.add('active');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    }
+
+    menuBtn.addEventListener('click', openSidebar);
+    closeSidebarBtn.addEventListener('click', closeSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
+    // Auto-close when link is clicked
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+        });
+    });
+}
 
 function initYearSelector() {
     const yearSelect = document.getElementById('year-select');
@@ -71,6 +103,7 @@ function renderAll() {
     if (currentView === 'donations') renderDonations();
     if (currentView === 'expenses') renderExpenses();
     if (currentView === 'seva') renderSeva();
+    if (currentView === 'attendance') renderAttendance();
 }
 
 // Navigation Logic
@@ -151,6 +184,43 @@ function renderSeva() {
         </tr>
     `).join('');
 }
+
+function renderAttendance() {
+    const tbody = document.getElementById('attendance-list');
+    const list = store.getAttendance(currentYear);
+
+    // Calculate Stats
+    const totalPax = list.reduce((acc, curr) => {
+        return curr.status === 'Coming' ? acc + Number(curr.pax) : acc;
+    }, 0);
+    document.getElementById('total-pax-count').textContent = totalPax;
+
+    tbody.innerHTML = list.map(item => `
+        <tr>
+            <td><div style="font-weight:600">${item.name}</div></td>
+            <td>${item.family}</td>
+            <td>${item.pax}</td>
+            <td>
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" 
+                        onchange="toggleAttendance(${item.id}, this.checked)"
+                        ${item.status === 'Coming' ? 'checked' : ''}
+                        style="width:1.2rem; height:1.2rem; margin-right:0.5rem; accent-color:var(--color-green);">
+                    <span style="font-weight:600; color:${item.status === 'Coming' ? 'var(--color-green)' : 'var(--color-text-muted)'}">
+                        ${item.status}
+                    </span>
+                </label>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Global scope for inline onchange
+window.toggleAttendance = function (id, isChecked) {
+    const status = isChecked ? 'Coming' : 'Not Coming';
+    store.updateAttendance(id, { status });
+    renderAttendance(); // Re-render to update text color
+};
 
 function renderPreviousYears() {
     const container = document.getElementById('previous-years-container');
@@ -252,24 +322,32 @@ function initModal() {
             const isDonation = val === 'donation';
             const isExpense = val === 'expense';
             const isSeva = val === 'seva';
+            const isAttendance = val === 'attendance';
 
             document.getElementById('donation-fields').classList.toggle('hidden', !isDonation);
             document.getElementById('expense-fields').classList.toggle('hidden', !isExpense);
             document.getElementById('seva-fields').classList.toggle('hidden', !isSeva);
+            document.getElementById('attendance-fields').classList.toggle('hidden', !isAttendance);
 
-            // Toggle Common Fields (Amount/Date not needed for Seva mainly, but maybe Date is useful? Let's hide Amount for Seva)
-            document.getElementById('amount-group').classList.toggle('hidden', isSeva);
-            document.getElementById('date-group').classList.toggle('hidden', isSeva); // Assuming Seva date is implicit to year, or adds complexity. Let's simplify and hide.
+            // Toggle Common Fields
+            // Amount/Date hidden for Seva AND Attendance
+            const hideCommon = isSeva || isAttendance;
+            document.getElementById('amount-group').classList.toggle('hidden', hideCommon);
+            document.getElementById('date-group').classList.toggle('hidden', hideCommon);
 
             // Toggle Required attributes
-            document.getElementById('amount').required = !isSeva;
-            document.getElementById('date').required = !isSeva;
+            document.getElementById('amount').required = !hideCommon;
+            document.getElementById('date').required = !hideCommon;
 
             document.getElementById('donor-name').required = isDonation;
             document.getElementById('category').required = isExpense;
 
             document.getElementById('seva-member').required = isSeva;
             document.getElementById('seva-task').required = isSeva;
+
+            document.getElementById('att-name').required = isAttendance;
+            document.getElementById('att-family').required = isAttendance;
+            document.getElementById('att-pax').required = isAttendance;
         });
     });
 
@@ -301,6 +379,14 @@ function initModal() {
                 member: document.getElementById('seva-member').value,
                 task: document.getElementById('seva-task').value,
                 status: 'Pending'
+            });
+        } else if (type === 'attendance') {
+            store.addAttendance({
+                year: currentYear,
+                name: document.getElementById('att-name').value,
+                family: document.getElementById('att-family').value,
+                pax: Number(document.getElementById('att-pax').value),
+                status: 'Coming' // Default to Coming when adding
             });
         }
 

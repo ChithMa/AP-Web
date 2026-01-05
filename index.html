@@ -21,8 +21,12 @@
 
 <body>
     <div class="app-container">
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
         <!-- Sidebar Navigation -->
-        <nav class="sidebar">
+        <nav class="sidebar" id="sidebar">
+            <span id="close-sidebar-btn" class="close-sidebar-btn">&times;</span>
             <div class="logo">
                 <span class="logo-icon"></span>
                 <h1>Muluthan Pooja</h1>
@@ -39,6 +43,9 @@
                 </li>
                 <li data-view="seva">
                     <span class="icon">🤝</span> Seva (Duties)
+                </li>
+                <li data-view="attendance">
+                    <span class="icon">📋</span> Namelist
                 </li>
                 <li data-view="reports">
                     <span class="icon">📑</span> Reports
@@ -71,7 +78,11 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-bar">
-                <h2 id="page-title">Dashboard</h2>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <button id="menu-btn" class="menu-btn"
+                        style="display:none; background:none; border:none; font-size:1.5rem; cursor:pointer;">☰</button>
+                    <h2 id="page-title">Dashboard</h2>
+                </div>
                 <div class="actions">
                     <button class="btn btn-primary" id="add-transaction-btn">+ Add New</button>
                 </div>
@@ -162,6 +173,36 @@
                 </div>
             </section>
 
+            <!-- Attendance View -->
+            <section id="attendance" class="view">
+                <div
+                    style="background:var(--color-surface); padding:1rem; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-family:var(--font-heading); color:var(--color-primary);">Attendance List
+                    </h3>
+                    <div style="text-align:right;">
+                        <span style="display:block; font-size:0.85rem; color:var(--color-text-muted);">Total
+                            Confirmed</span>
+                        <span id="total-pax-count"
+                            style="font-size:1.5rem; font-weight:700; color:var(--color-green);">0</span>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Family</th>
+                                <th>Pax</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-list">
+                            <!-- Items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Reports View (Placeholder) -->
             <section id="reports" class="view">
                 <div
@@ -203,6 +244,9 @@
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="type" value="seva"> Seva (Duty)
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="attendance"> Attendance
                         </label>
                     </div>
                 </div>
@@ -254,6 +298,21 @@
                     <div class="form-group">
                         <label for="seva-task">Task Description</label>
                         <input type="text" id="seva-task" placeholder="e.g. Cleaning, Flowers">
+                    </div>
+                </div>
+
+                <div id="attendance-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="att-name">Member Name</label>
+                        <input type="text" id="att-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="att-family">Family</label>
+                        <input type="text" id="att-family">
+                    </div>
+                    <div class="form-group">
+                        <label for="att-pax">Pax Count</label>
+                        <input type="number" id="att-pax" min="1" value="1">
                     </div>
                 </div>
 

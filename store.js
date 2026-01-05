@@ -42,6 +42,10 @@ const MOCK_DATA = {
         { id: 1, year: 2025, member: 'Ravi Sharma', task: 'Cleaning Floor', status: 'Pending' },
         { id: 2, year: 2025, member: 'Anjali Verma', task: 'Flower Decoration', status: 'Completed' },
         { id: 3, year: 2024, member: 'Suresh', task: 'Food Serving', status: 'Completed' }
+    ],
+    attendance: [
+        { id: 1, year: 2025, name: 'Ravi Sharma', family: 'Sharma Ji', pax: 3, status: 'Coming' },
+        { id: 2, year: 2025, name: 'Anjali Verma', family: 'Verma Ji', pax: 2, status: 'Not Coming' }
     ]
 };
 
@@ -109,12 +113,36 @@ class Store {
             .filter(a => year === 'all' || a.year == year);
     }
 
+    getAttendance(year) {
+        return (this.data.attendance || [])
+            .filter(a => year === 'all' || a.year == year)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     addAssignment(assignment) {
         if (!this.data.assignments) this.data.assignments = [];
         const newAssignment = { ...assignment, id: Date.now() };
         this.data.assignments.push(newAssignment);
         this.saveData(this.data);
         return newAssignment;
+    }
+
+    addAttendance(entry) {
+        if (!this.data.attendance) this.data.attendance = [];
+        const newEntry = { ...entry, id: Date.now() };
+        this.data.attendance.push(newEntry);
+        this.saveData(this.data);
+        return newEntry;
+    }
+
+    updateAttendance(id, updates) {
+        const index = this.data.attendance.findIndex(a => a.id === id);
+        if (index !== -1) {
+            this.data.attendance[index] = { ...this.data.attendance[index], ...updates };
+            this.saveData(this.data);
+            return true;
+        }
+        return false;
     }
 
     getStats(year) {
@@ -142,6 +170,21 @@ class Store {
     addDonation(donation) {
         const newDonation = { ...donation, id: Date.now() };
         this.data.donations.push(newDonation);
+
+        // Auto-add to attendance if not already present
+        const year = new Date(donation.date).getFullYear();
+        const exists = this.getAttendance(year).some(a => a.name.toLowerCase() === donation.name.toLowerCase());
+
+        if (!exists) {
+            this.addAttendance({
+                year: year,
+                name: donation.name,
+                family: donation.family,
+                pax: 1, // Default pax
+                status: 'Coming'
+            });
+        }
+
         this.saveData(this.data);
         return newDonation;
     }
