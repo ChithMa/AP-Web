@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initYearSelector();
     initModal();
+    initReports();
     // Default to current year or the latest available if current is empty
     renderAll();
 });
@@ -69,6 +70,7 @@ function renderAll() {
     if (currentView === 'dashboard') renderDashboard();
     if (currentView === 'donations') renderDonations();
     if (currentView === 'expenses') renderExpenses();
+    if (currentView === 'seva') renderSeva();
 }
 
 // Navigation Logic
@@ -133,6 +135,19 @@ function renderExpenses() {
             <td><span style="background: var(--color-primary-light); color: var(--color-primary); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.85rem;">${e.category}</span></td>
             <td>${e.description}</td>
             <td style="color: var(--color-primary); font-weight:600">- ${formatCurrency(e.amount)}</td>
+        </tr>
+    `).join('');
+}
+
+function renderSeva() {
+    const tbody = document.getElementById('seva-list');
+    const tasks = store.getAssignments(currentYear);
+
+    tbody.innerHTML = tasks.map(t => `
+        <tr>
+            <td><div style="font-weight:600">${t.member}</div></td>
+            <td>${t.task}</td>
+            <td><span style="background: ${t.status === 'Completed' ? 'var(--color-green)' : '#F59E0B'}; color: white; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.85rem;">${t.status}</span></td>
         </tr>
     `).join('');
 }
@@ -233,13 +248,28 @@ function initModal() {
     const typeInputs = document.querySelectorAll('input[name="type"]');
     typeInputs.forEach(input => {
         input.addEventListener('change', (e) => {
-            const isDonation = e.target.value === 'donation';
+            const val = e.target.value;
+            const isDonation = val === 'donation';
+            const isExpense = val === 'expense';
+            const isSeva = val === 'seva';
+
             document.getElementById('donation-fields').classList.toggle('hidden', !isDonation);
-            document.getElementById('expense-fields').classList.toggle('hidden', isDonation);
+            document.getElementById('expense-fields').classList.toggle('hidden', !isExpense);
+            document.getElementById('seva-fields').classList.toggle('hidden', !isSeva);
+
+            // Toggle Common Fields (Amount/Date not needed for Seva mainly, but maybe Date is useful? Let's hide Amount for Seva)
+            document.getElementById('amount-group').classList.toggle('hidden', isSeva);
+            document.getElementById('date-group').classList.toggle('hidden', isSeva); // Assuming Seva date is implicit to year, or adds complexity. Let's simplify and hide.
 
             // Toggle Required attributes
+            document.getElementById('amount').required = !isSeva;
+            document.getElementById('date').required = !isSeva;
+
             document.getElementById('donor-name').required = isDonation;
-            document.getElementById('category').required = !isDonation;
+            document.getElementById('category').required = isExpense;
+
+            document.getElementById('seva-member').required = isSeva;
+            document.getElementById('seva-task').required = isSeva;
         });
     });
 
@@ -258,22 +288,84 @@ function initModal() {
                 amount,
                 date
             });
-        } else {
+        } else if (type === 'expense') {
             store.addExpense({
                 category: document.getElementById('category').value,
                 description: document.getElementById('description').value,
                 amount,
                 date
             });
+        } else if (type === 'seva') {
+            store.addAssignment({
+                year: currentYear,
+                member: document.getElementById('seva-member').value,
+                task: document.getElementById('seva-task').value,
+                status: 'Pending'
+            });
         }
 
         modal.classList.add('hidden');
         transactionForm.reset();
 
+        // Reset visibility to default (Donation) for next open
+        document.querySelector('input[name="type"][value="donation"]').click();
+
         // Refresh Current View & Years List (in case new year added)
         initYearSelector();
         renderAll();
     });
+}
+
+// Reports & Export Logic
+function initReports() {
+    document.getElementById('export-donations-btn').addEventListener('click', () => {
+        const data = store.getDonations(currentYear);
+        if (data.length === 0) return alert('No donations to export for ' + currentYear);
+
+        const headers = [['Date', 'Name', 'Family', 'Amount']];
+        const rows = data.map(d => [formatDate(d.date), d.name, d.family, formatCurrency(d.amount)]);
+
+        downloadPDF(`Donations Report - ${currentYear}`, headers, rows, `Donations_${currentYear}.pdf`);
+    });
+
+    document.getElementById('export-expenses-btn').addEventListener('click', () => {
+        const data = store.getExpenses(currentYear);
+        if (data.length === 0) return alert('No expenses to export for ' + currentYear);
+
+        const headers = [['Date', 'Category', 'Description', 'Amount']];
+        const rows = data.map(d => [formatDate(d.date), d.category, d.description, formatCurrency(d.amount)]);
+
+        downloadPDF(`Expenses Report - ${currentYear}`, headers, rows, `Expenses_${currentYear}.pdf`);
+    });
+}
+
+function downloadPDF(title, headers, rows, filename) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(185, 28, 28); // Theme Primary Color
+    doc.text("Muluthan Pooja Finance", 14, 22);
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(title, 14, 32);
+
+    // Table
+    doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [185, 28, 28], textColor: 255 },
+        styles: { font: "helvetica", fontSize: 10 },
+        alternateRowStyles: { fillColor: [253, 251, 247] } // Theme creamish
+    });
+
+    // Save
+    doc.save(filename);
 }
 
 // Utility Helpers

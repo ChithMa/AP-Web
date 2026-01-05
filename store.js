@@ -34,6 +34,14 @@ const MOCK_DATA = {
         // 2023
         { id: 21, date: '2023-08-15', category: 'Food', description: '2023 Annadanam', amount: 60000 },
         { id: 22, date: '2023-08-16', category: 'Pooja', description: '2023 Homa', amount: 40000 },
+        // 2023
+        { id: 21, date: '2023-08-15', category: 'Food', description: '2023 Annadanam', amount: 60000 },
+        { id: 22, date: '2023-08-16', category: 'Pooja', description: '2023 Homa', amount: 40000 },
+    ],
+    assignments: [
+        { id: 1, year: 2025, member: 'Ravi Sharma', task: 'Cleaning Floor', status: 'Pending' },
+        { id: 2, year: 2025, member: 'Anjali Verma', task: 'Flower Decoration', status: 'Completed' },
+        { id: 3, year: 2024, member: 'Suresh', task: 'Food Serving', status: 'Completed' }
     ]
 };
 
@@ -94,6 +102,19 @@ class Store {
         return this.data.expenses
             .filter(e => year === 'all' || new Date(e.date).getFullYear() == year)
             .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    getAssignments(year) {
+        return (this.data.assignments || [])
+            .filter(a => year === 'all' || a.year == year);
+    }
+
+    addAssignment(assignment) {
+        if (!this.data.assignments) this.data.assignments = [];
+        const newAssignment = { ...assignment, id: Date.now() };
+        this.data.assignments.push(newAssignment);
+        this.saveData(this.data);
+        return newAssignment;
     }
 
     getStats(year) {

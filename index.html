@@ -13,6 +13,9 @@
         rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -33,6 +36,9 @@
                 </li>
                 <li data-view="expenses">
                     <span class="icon">💸</span> Expenses
+                </li>
+                <li data-view="seva">
+                    <span class="icon">🤝</span> Seva (Duties)
                 </li>
                 <li data-view="reports">
                     <span class="icon">📑</span> Reports
@@ -138,10 +144,43 @@
                 </div>
             </section>
 
+            <!-- Seva View -->
+            <section id="seva" class="view">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Member Name</th>
+                                <th>Assigned Duty</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="seva-list">
+                            <!-- Items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Reports View (Placeholder) -->
             <section id="reports" class="view">
-                <div class="empty-state">
-                    <p>Export functionality coming soon.</p>
+                <div
+                    style="background:var(--color-surface); padding:2rem; border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+                    <h3 style="margin-bottom:1.5rem; font-family:var(--font-heading); color:var(--color-primary);">
+                        Export Data</h3>
+                    <p style="margin-bottom:2rem; color:var(--color-text-muted);">Download your financial data for the
+                        selected year as CSV files.</p>
+
+                    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+                        <button id="export-donations-btn" class="btn btn-primary"
+                            style="display:flex; align-items:center; gap:0.5rem;">
+                            <span>�</span> Export Donations (PDF)
+                        </button>
+                        <button id="export-expenses-btn" class="btn btn-primary"
+                            style="display:flex; align-items:center; gap:0.5rem; background-color:var(--color-gold);">
+                            <span>�</span> Export Expenses (PDF)
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>
@@ -151,28 +190,31 @@
     <div id="modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2 id="modal-title">Add Transaction</h2>
+            <h2 id="modal-title">Add Entry</h2>
             <form id="transaction-form">
                 <div class="form-group">
                     <label>Type</label>
-                    <div class="toggle-group">
+                    <div class="toggle-group" style="flex-wrap:wrap">
                         <label class="radio-label">
                             <input type="radio" name="type" value="donation" checked> Donation
                         </label>
                         <label class="radio-label">
                             <input type="radio" name="type" value="expense"> Expense
                         </label>
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="seva"> Seva (Duty)
+                        </label>
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="amount-group">
                     <label for="amount">Amount (₹)</label>
-                    <input type="number" id="amount" required min="1">
+                    <input type="number" id="amount" min="1">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="date-group">
                     <label for="date">Date</label>
-                    <input type="date" id="date" required>
+                    <input type="date" id="date">
                 </div>
 
                 <!-- Dynamic Fields based on Type -->
@@ -204,6 +246,17 @@
                     </div>
                 </div>
 
+                <div id="seva-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="seva-member">Member Name</label>
+                        <input type="text" id="seva-member">
+                    </div>
+                    <div class="form-group">
+                        <label for="seva-task">Task Description</label>
+                        <input type="text" id="seva-task" placeholder="e.g. Cleaning, Flowers">
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-block">Save</button>
             </form>
         </div>
@@ -212,6 +265,5 @@
     <script src="store.js"></script>
     <script src="app.js"></script>
 </body>
-
 
 </html>
