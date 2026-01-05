@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muluthan Pooja - Finance App</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🕉️</span>
+                <h1>Muluthan Pooja</h1>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-view="dashboard">
+                    <span class="icon">📊</span> Dashboard
+                </li>
+                <li data-view="donations">
+                    <span class="icon">🙏</span> Donations
+                </li>
+                <li data-view="expenses">
+                    <span class="icon">💸</span> Expenses
+                </li>
+                <li data-view="reports">
+                    <span class="icon">📑</span> Reports
+                </li>
+            </ul>
+
+            <div style="margin-bottom: 2rem; padding: 0 0.5rem;">
+                <label
+                    style="display:block; margin-bottom:0.5rem; font-size:0.85rem; font-weight:600; color:var(--color-text-muted);">Select
+                    Year</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <select id="year-select"
+                        style="flex:1; border-color:var(--color-primary); background:var(--color-bg);">
+                        <!-- Populated by JS -->
+                    </select>
+                    <button id="add-year-btn"
+                        style="padding:0 0.5rem; background:var(--color-gold); border:none; border-radius:4px; color:white; cursor:pointer; font-size:1.2rem; line-height:1;">+</button>
+                </div>
+            </div>
+
+            <div class="user-profile">
+                <div class="avatar">A</div>
+                <div class="info">
+                    <p class="name">Admin User</p>
+                    <p class="role">Organizer</p>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h2 id="page-title">Dashboard</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" id="add-transaction-btn">+ Add New</button>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="dashboard" class="view active">
+                <div class="stats-grid">
+                    <div class="stat-card" style="--accent-color: var(--color-gold);">
+                        <h3>Total Donations</h3>
+                        <p class="amount" id="dash-total-donations">₹0</p>
+                    </div>
+                    <div class="stat-card" style="--accent-color: var(--color-red);">
+                        <h3>Total Expenses</h3>
+                        <p class="amount" id="dash-total-expenses">₹0</p>
+                    </div>
+                    <div class="stat-card" style="--accent-color: var(--color-green);">
+                        <h3>Remaining Balance</h3>
+                        <p class="amount" id="dash-balance">₹0</p>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>Overview</h3>
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Expense Breakdown</h3>
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Donations View -->
+            <section id="donations" class="view">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Family</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donations-list">
+                            <!-- Items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Expenses View -->
+            <section id="expenses" class="view">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-list">
+                            <!-- Items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reports View (Placeholder) -->
+            <section id="reports" class="view">
+                <div class="empty-state">
+                    <p>Export functionality coming soon.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Adding Items -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">Add Transaction</h2>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="toggle-group">
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="donation" checked> Donation
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="expense"> Expense
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input type="number" id="amount" required min="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <!-- Dynamic Fields based on Type -->
+                <div id="donation-fields">
+                    <div class="form-group">
+                        <label for="donor-name">Donor Name</label>
+                        <input type="text" id="donor-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="family-name">Family Head</label>
+                        <input type="text" id="family-name">
+                    </div>
+                </div>
+
+                <div id="expense-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category">
+                            <option value="Travel">Travel</option>
+                            <option value="Food">Food</option>
+                            <option value="Pooja">Pooja Items</option>
+                            <option value="Accommodation">Accommodation</option>
+                            <option value="Misc">Miscellaneous</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="store.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
