@@ -46,6 +46,44 @@ const MOCK_DATA = {
     attendance: [
         { id: 1, year: 2025, name: 'Ravi Sharma', family: 'Sharma Ji', pax: 3, status: 'Coming' },
         { id: 2, year: 2025, name: 'Anjali Verma', family: 'Verma Ji', pax: 2, status: 'Not Coming' }
+    ],
+    photos: [
+        {
+            id: 1,
+            year: 2025,
+            title: 'Maha Deeparadhana',
+            caption: 'Evening deeparadhana lighting ritual at main altar',
+            url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+            date: '2025-12-05',
+            createdAt: '2025-12-05T18:30:00.000Z'
+        },
+        {
+            id: 2,
+            year: 2025,
+            title: 'Flower & Garland Decoration',
+            caption: 'Volunteers and youth decorating the sanctuary with fresh marigolds',
+            url: 'https://images.unsplash.com/photo-1599839575945-a9e5af0c3fa5?auto=format&fit=crop&w=800&q=80',
+            date: '2025-12-04',
+            createdAt: '2025-12-04T10:15:00.000Z'
+        },
+        {
+            id: 3,
+            year: 2025,
+            title: 'Maha Prasadam Feast',
+            caption: 'Community Annadanam seva served to all devotees',
+            url: 'https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80',
+            date: '2025-12-10',
+            createdAt: '2025-12-10T13:00:00.000Z'
+        },
+        {
+            id: 4,
+            year: 2024,
+            title: 'Traditional Temple Percussion',
+            caption: 'Melam and devotional music procession',
+            url: 'https://images.unsplash.com/photo-1514533212735-5df27d970db0?auto=format&fit=crop&w=800&q=80',
+            date: '2024-05-21',
+            createdAt: '2024-05-21T09:00:00.000Z'
+        }
     ]
 };
 
@@ -57,7 +95,16 @@ class Store {
     loadData() {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-            return JSON.parse(stored);
+            try {
+                const parsed = JSON.parse(stored);
+                if (!parsed.photos) {
+                    parsed.photos = [...MOCK_DATA.photos];
+                    this.saveData(parsed);
+                }
+                return parsed;
+            } catch (err) {
+                console.error('Failed to parse localStorage data, resetting', err);
+            }
         }
         // Initialize with mock data if empty
         this.saveData(MOCK_DATA);
@@ -196,7 +243,40 @@ class Store {
         return newExpense;
     }
 
+    getPhotos(year) {
+        if (!this.data.photos) this.data.photos = [];
+        return this.data.photos
+            .filter(p => year === 'all' || p.year == year)
+            .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+    }
 
+    addPhoto(photo) {
+        if (!this.data.photos) this.data.photos = [];
+        const newPhoto = {
+            id: Date.now(),
+            year: Number(photo.year),
+            title: photo.title || 'Pooja Moment',
+            caption: photo.caption || '',
+            url: photo.url,
+            date: photo.date || new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString()
+        };
+        this.data.photos.unshift(newPhoto);
+        this.saveData(this.data);
+        return newPhoto;
+    }
+
+    deletePhoto(id) {
+        if (!this.data.photos) return false;
+        const initialLength = this.data.photos.length;
+        this.data.photos = this.data.photos.filter(p => p.id !== id);
+        if (this.data.photos.length !== initialLength) {
+            this.saveData(this.data);
+            return true;
+        }
+        return false;
+    }
 }
 
 const store = new Store();
+

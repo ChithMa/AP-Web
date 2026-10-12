@@ -26,9 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initYearSelector();
     initModal();
     initReports();
-    initModal();
-    initReports();
     initMobileSidebar();
+    initGallery();
     // Default to current year or the latest available if current is empty
     renderAll();
 });
@@ -104,10 +103,21 @@ function renderAll() {
     if (currentView === 'expenses') renderExpenses();
     if (currentView === 'seva') renderSeva();
     if (currentView === 'attendance') renderAttendance();
+    if (currentView === 'gallery') renderGallery();
 }
 
 // Navigation Logic
 function initNavigation() {
+    const titles = {
+        dashboard: 'Dashboard',
+        donations: 'Donations',
+        expenses: 'Expenses',
+        seva: 'Seva (Duties)',
+        attendance: 'Namelist',
+        gallery: 'Photo Gallery',
+        reports: 'Reports'
+    };
+
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
             // Update Active Link
@@ -123,8 +133,10 @@ function initNavigation() {
                 }
             });
 
-            // Update Header (Excluding the selector)
-            // We only need to refresh data
+            // Update Header Title
+            if (pageTitle && titles[targetView]) {
+                pageTitle.textContent = titles[targetView];
+            }
 
             renderAll();
         });
@@ -468,3 +480,354 @@ function formatDate(dateStr) {
         day: 'numeric', month: 'short', year: 'numeric'
     });
 }
+
+// ============================================
+// Gallery Module Logic
+// ============================================
+
+let currentSelectedImageData = null;
+
+function initGallery() {
+    const openBtn = document.getElementById('open-photo-modal-btn');
+    const emptyAddBtn = document.getElementById('empty-add-photo-btn');
+    const closeBtn = document.getElementById('close-photo-modal-btn');
+    const modal = document.getElementById('photo-modal');
+    const form = document.getElementById('photo-form');
+    const dropzone = document.getElementById('gallery-dropzone');
+    const dropzoneInput = document.getElementById('dropzone-file-input');
+    const fileInput = document.getElementById('photo-file-input');
+    const urlInput = document.getElementById('photo-url-input');
+    const fileGroup = document.getElementById('photo-file-group');
+    const urlGroup = document.getElementById('photo-url-group');
+    const previewContainer = document.getElementById('photo-preview-container');
+    const previewImg = document.getElementById('photo-preview-img');
+    const removePreviewBtn = document.getElementById('remove-preview-btn');
+    const sourceRadios = document.querySelectorAll('input[name="photo-source-type"]');
+    const photoDate = document.getElementById('photo-date');
+
+    // Lightbox Elements
+    const lightboxModal = document.getElementById('lightbox-modal');
+    const lightboxOverlay = document.getElementById('lightbox-overlay');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    // Open Modal Handlers
+    function openModal() {
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        if (photoDate) photoDate.valueAsDate = new Date();
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (emptyAddBtn) emptyAddBtn.addEventListener('click', openModal);
+
+    // Close Modal Handler
+    function closeModal() {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        if (form) form.reset();
+        clearPreview();
+        const fileRadio = document.querySelector('input[name="photo-source-type"][value="file"]');
+        if (fileRadio) fileRadio.checked = true;
+        if (fileGroup) fileGroup.classList.remove('hidden');
+        if (urlGroup) urlGroup.classList.add('hidden');
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // Toggle File vs URL
+    sourceRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isFile = e.target.value === 'file';
+            fileGroup.classList.toggle('hidden', !isFile);
+            urlGroup.classList.toggle('hidden', isFile);
+            clearPreview();
+        });
+    });
+
+    function setPreview(src) {
+        currentSelectedImageData = src;
+        if (previewImg) previewImg.src = src;
+        if (previewContainer) previewContainer.classList.remove('hidden');
+    }
+
+    function clearPreview() {
+        currentSelectedImageData = null;
+        if (previewImg) previewImg.src = '';
+        if (previewContainer) previewContainer.classList.add('hidden');
+        if (fileInput) fileInput.value = '';
+        if (urlInput) urlInput.value = '';
+    }
+
+    if (removePreviewBtn) {
+        removePreviewBtn.addEventListener('click', clearPreview);
+    }
+
+    // File Input change
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const optimizedDataUrl = await compressImageFile(file);
+                setPreview(optimizedDataUrl);
+                // Auto-fill title if empty
+                const titleInput = document.getElementById('photo-title');
+                if (titleInput && !titleInput.value) {
+                    const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                    titleInput.value = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Could not process this image. Please try another file.');
+            }
+        });
+    }
+
+    // URL input preview on blur/input
+    if (urlInput) {
+        urlInput.addEventListener('input', () => {
+            const val = urlInput.value.trim();
+            if (val) {
+                setPreview(val);
+            } else {
+                clearPreview();
+            }
+        });
+    }
+
+    // Dropzone Quick Upload
+    if (dropzone && dropzoneInput) {
+        dropzone.addEventListener('click', () => {
+            dropzoneInput.click();
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('drag-active');
+        });
+
+        ['dragleave', 'dragend'].forEach(evt => {
+            dropzone.addEventListener(evt, () => {
+                dropzone.classList.remove('drag-active');
+            });
+        });
+
+        dropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-active');
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                handleQuickUploadFiles(files);
+            }
+        });
+
+        dropzoneInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleQuickUploadFiles(e.target.files);
+            }
+        });
+    }
+
+    // Quick upload multiple / single files dropped directly
+    async function handleQuickUploadFiles(fileList) {
+        let addedCount = 0;
+        for (const file of fileList) {
+            if (!file.type.startsWith('image/')) continue;
+            try {
+                const optimizedUrl = await compressImageFile(file);
+                const title = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                store.addPhoto({
+                    year: currentYear,
+                    title: title.charAt(0).toUpperCase() + title.slice(1),
+                    caption: 'Uploaded to ' + currentYear + ' Pooja Album',
+                    url: optimizedUrl,
+                    date: new Date().toISOString().split('T')[0]
+                });
+                addedCount++;
+            } catch (err) {
+                console.error('Failed to upload file:', file.name, err);
+            }
+        }
+        if (addedCount > 0) {
+            renderGallery();
+        }
+    }
+
+    // Form Submit
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('photo-title').value.trim();
+            const caption = document.getElementById('photo-caption').value.trim();
+            const date = document.getElementById('photo-date').value;
+
+            if (!currentSelectedImageData) {
+                alert('Please choose an image file or provide a valid image URL.');
+                return;
+            }
+
+            store.addPhoto({
+                year: currentYear,
+                title,
+                caption,
+                url: currentSelectedImageData,
+                date
+            });
+
+            closeModal();
+            renderGallery();
+        });
+    }
+
+    // Lightbox Close Handlers
+    function closeLightbox() {
+        if (lightboxModal) lightboxModal.classList.add('hidden');
+    }
+
+    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+    if (lightboxOverlay) lightboxOverlay.addEventListener('click', closeLightbox);
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeLightbox();
+            if (modal && !modal.classList.contains('hidden')) closeModal();
+        }
+    });
+}
+
+// Compress & resize image to safe dimensions (<1280px) and JPEG 0.8 quality
+function compressImageFile(file, maxWidth = 1280, maxHeight = 1280, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth || height > maxHeight) {
+                    if (width / height > maxWidth / maxHeight) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        maxHeight = maxHeight;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderGallery() {
+    const grid = document.getElementById('gallery-grid');
+    const emptyState = document.getElementById('gallery-empty-state');
+    const photoCountBadge = document.getElementById('gallery-photo-count');
+    const subtitle = document.getElementById('gallery-subtitle');
+
+    if (!grid) return;
+
+    const photos = store.getPhotos(currentYear);
+
+    if (photoCountBadge) {
+        photoCountBadge.textContent = `${photos.length} Photo${photos.length === 1 ? '' : 's'}`;
+    }
+
+    if (subtitle) {
+        subtitle.textContent = `Sacred moments, ritual memories, and festivities for ${currentYear}.`;
+    }
+
+    if (photos.length === 0) {
+        grid.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    grid.innerHTML = photos.map(photo => `
+        <div class="gallery-card" onclick="openLightbox(${photo.id})">
+            <div class="gallery-img-wrapper">
+                <img src="${photo.url}" alt="${escapeHtml(photo.title)}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80'">
+                <div class="gallery-hover-overlay">
+                    <span class="gallery-zoom-icon">🔍 View Full Photo</span>
+                </div>
+                <button class="gallery-delete-btn" title="Delete Photo" onclick="event.stopPropagation(); deleteGalleryPhoto(${photo.id});">
+                    &times;
+                </button>
+            </div>
+            <div class="gallery-card-body">
+                <div class="gallery-card-header">
+                    <h4 class="gallery-card-title">${escapeHtml(photo.title)}</h4>
+                    <span class="gallery-card-date">${formatDate(photo.date || photo.createdAt)}</span>
+                </div>
+                ${photo.caption ? `<p class="gallery-card-caption">${escapeHtml(photo.caption)}</p>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Lightbox Open Trigger
+window.openLightbox = function (photoId) {
+    const photos = store.getPhotos(currentYear);
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    const modal = document.getElementById('lightbox-modal');
+    const img = document.getElementById('lightbox-image');
+    const title = document.getElementById('lightbox-title');
+    const caption = document.getElementById('lightbox-caption');
+    const date = document.getElementById('lightbox-date');
+    const download = document.getElementById('lightbox-download');
+
+    if (!modal) return;
+
+    if (img) img.src = photo.url;
+    if (title) title.textContent = photo.title;
+    if (caption) caption.textContent = photo.caption || '';
+    if (date) date.textContent = formatDate(photo.date || photo.createdAt);
+    if (download) {
+        download.href = photo.url;
+        download.download = `${photo.title.replace(/\s+/g, '_')}_${currentYear}.jpg`;
+    }
+
+    modal.classList.remove('hidden');
+};
+
+// Delete Trigger
+window.deleteGalleryPhoto = function (photoId) {
+    if (confirm('Are you sure you want to delete this photo from the gallery?')) {
+        const deleted = store.deletePhoto(photoId);
+        if (deleted) {
+            renderGallery();
+        }
+    }
+};
+
+// HTML Escaping Helper
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+

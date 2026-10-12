@@ -47,6 +47,9 @@
                 <li data-view="attendance">
                     <span class="icon">📋</span> Namelist
                 </li>
+                <li data-view="gallery">
+                    <span class="icon">📸</span> Gallery
+                </li>
                 <li data-view="reports">
                     <span class="icon">📑</span> Reports
                 </li>
@@ -224,6 +227,45 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Gallery View -->
+            <section id="gallery" class="view">
+                <div class="gallery-header-card">
+                    <div class="gallery-header-info">
+                        <h3>Pooja Memories & Photos</h3>
+                        <p id="gallery-subtitle">Reliving sacred moments and festivities for the selected year.</p>
+                    </div>
+                    <div class="gallery-header-actions">
+                        <span class="gallery-badge" id="gallery-photo-count">0 Photos</span>
+                        <button class="btn btn-primary" id="open-photo-modal-btn">
+                            <span>📷</span> + Add Photo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropzone / Quick Upload -->
+                <div class="gallery-dropzone" id="gallery-dropzone">
+                    <div class="dropzone-icon">📸</div>
+                    <div class="dropzone-text">
+                        <strong>Click to select</strong> or drag and drop photos here
+                    </div>
+                    <span class="dropzone-hint">Supports JPG, PNG, WEBP, GIF (Automatic optimization)</span>
+                    <input type="file" id="dropzone-file-input" accept="image/*" multiple style="display:none;">
+                </div>
+
+                <!-- Photos Grid -->
+                <div id="gallery-grid" class="gallery-grid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="gallery-empty-state" class="gallery-empty-state hidden">
+                    <div class="empty-icon">🖼️</div>
+                    <h4>No Photos Added Yet</h4>
+                    <p>Be the first to upload photos from the pooja celebrations!</p>
+                    <button class="btn btn-primary" id="empty-add-photo-btn">+ Upload First Photo</button>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -318,6 +360,86 @@
 
                 <button type="submit" class="btn btn-primary btn-block">Save</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal for Adding Photos -->
+    <div id="photo-modal" class="modal hidden">
+        <div class="modal-content photo-modal-content">
+            <span class="close-modal" id="close-photo-modal-btn">&times;</span>
+            <h2>Add Photo to Gallery</h2>
+            <form id="photo-form">
+                <!-- Source Toggle: Upload File vs Image URL -->
+                <div class="form-group">
+                    <label>Photo Source</label>
+                    <div class="toggle-group">
+                        <label class="radio-label">
+                            <input type="radio" name="photo-source-type" value="file" checked> Upload Image
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="photo-source-type" value="url"> Image Web Link (URL)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- File Picker -->
+                <div class="form-group" id="photo-file-group">
+                    <label for="photo-file-input">Choose Image File</label>
+                    <input type="file" id="photo-file-input" accept="image/*">
+                </div>
+
+                <!-- URL Input -->
+                <div class="form-group hidden" id="photo-url-group">
+                    <label for="photo-url-input">Image Direct URL</label>
+                    <input type="url" id="photo-url-input" placeholder="https://example.com/photo.jpg">
+                </div>
+
+                <!-- Live Preview -->
+                <div id="photo-preview-container" class="photo-preview-container hidden">
+                    <img id="photo-preview-img" src="" alt="Selected Photo Preview">
+                    <button type="button" id="remove-preview-btn" class="remove-preview-btn"
+                        title="Remove image">&times;</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="photo-title">Title / Occasion</label>
+                    <input type="text" id="photo-title" placeholder="e.g. Maha Deeparadhana, Annadanam..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="photo-caption">Description / Caption</label>
+                    <input type="text" id="photo-caption" placeholder="e.g. Performed with family and devotees">
+                </div>
+
+                <div class="form-group">
+                    <label for="photo-date">Event Date</label>
+                    <input type="date" id="photo-date" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="save-photo-btn">Save to Gallery</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox-modal" class="lightbox-modal hidden">
+        <div class="lightbox-overlay" id="lightbox-overlay"></div>
+        <div class="lightbox-content">
+            <button class="lightbox-close" id="lightbox-close">&times;</button>
+            <div class="lightbox-image-wrapper">
+                <img id="lightbox-image" src="" alt="Full view">
+            </div>
+            <div class="lightbox-details">
+                <div class="lightbox-text">
+                    <h3 id="lightbox-title"></h3>
+                    <p id="lightbox-caption"></p>
+                </div>
+                <div class="lightbox-meta">
+                    <span id="lightbox-date" class="lightbox-date"></span>
+                    <a id="lightbox-download" class="btn btn-outline" download="pooja-photo.jpg"
+                        target="_blank">Download</a>
+                </div>
+            </div>
         </div>
     </div>
 
